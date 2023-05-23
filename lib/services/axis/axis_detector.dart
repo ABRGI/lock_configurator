@@ -594,7 +594,7 @@ class AxisDetector {
       case AccessType.technicalRoom:
       case AccessType.elevator:
         token +=
-            'floor_${accessController.floor.toString()}_1_${accessController.accessType.toTokenString()}${(accessController.accessType == AccessType.entrance || accessController.accessType == AccessType.mainEntrance) && accessController.label.isNotEmpty ? '_${accessController.label}' : ''}';
+            'floor_${accessController.floor.toString()}_1_${accessController.accessType.toTokenString()}${accessController.label.isNotEmpty ? '_${accessController.label}' : ''}';
       case AccessType.mainEntrance:
       case AccessType.innerEntrance:
         token += accessController.accessType.toTokenString();
