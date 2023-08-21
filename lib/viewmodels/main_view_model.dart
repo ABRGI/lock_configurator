@@ -156,6 +156,25 @@ class MainViewModel {
     });
   }
 
+  void updateControllerPassword(
+      {void Function()? onSuccess, void Function(String)? onError}) {
+    List<LockController> locksToConfigure = [];
+    onlineLockControllers
+        .where((lockController) => lockController.selected)
+        .forEach((lockController) {
+      locksToConfigure.add(lockController);
+      axisDetector.updateControllerPassword(
+          lockController: lockController,
+          onSuccess: () {
+            lockControllers.remove(lockController);
+            if (lockControllers.isEmpty && onSuccess != null) {
+              onSuccess();
+            }
+          },
+          onError: onError);
+    });
+  }
+
   void importFromCsv(
       {void Function()? onSuccess, void Function(String)? onError}) {
     FilePicker.platform.pickFiles(
@@ -196,8 +215,9 @@ class MainViewModel {
         allowedExtensions: ['csv']).then((savePath) {
       if (savePath != null) {
         log('Exporting config template to $savePath');
-        String csv = const ListToCsvConverter()
-            .convert(NelsonLockConfigTemplate.nelsonLockConfigTemplateData);
+        String csv = const ListToCsvConverter().convert(
+            NelsonLockConfigTemplate.nelsonLockConfigTemplateData,
+            fieldDelimiter: ',');
         File file = File(savePath);
         file.writeAsString(csv).then((value) {
           log('Successfully exported config template');
@@ -288,23 +308,26 @@ class MainViewModel {
       if (csvData.indexOf(csvRow) > 0) {
         LockController lockController;
         lockController = lockControllers.firstWhere(
-          (lock) =>
-              (csvRow[NelsonLockConfigTemplate.ipAddressIndex]
-                      .toString()
-                      .isNotEmpty &&
-                  lock.ipAddress ==
-                      csvRow[NelsonLockConfigTemplate.ipAddressIndex]
-                          .toString()) ||
-              (csvRow[NelsonLockConfigTemplate.controllerNumberIndex]
-                      .toString()
-                      .isNotEmpty &&
-                  lock.controllerNumber ==
-                      csvRow[NelsonLockConfigTemplate.controllerNumberIndex]) ||
-              (csvRow[NelsonLockConfigTemplate.controllerIdIndex]
-                      .toString()
-                      .isNotEmpty &&
-                  lock.id ==
-                      csvRow[NelsonLockConfigTemplate.controllerIdIndex]),
+          (lock) {
+            var a = 1;
+            return (csvRow[NelsonLockConfigTemplate.ipAddressIndex]
+                        .toString()
+                        .isNotEmpty &&
+                    lock.ipAddress ==
+                        csvRow[NelsonLockConfigTemplate.ipAddressIndex]
+                            .toString()) ||
+                (csvRow[NelsonLockConfigTemplate.controllerNumberIndex]
+                        .toString()
+                        .isNotEmpty &&
+                    lock.controllerNumber ==
+                        csvRow[
+                            NelsonLockConfigTemplate.controllerNumberIndex]) ||
+                (csvRow[NelsonLockConfigTemplate.controllerIdIndex]
+                        .toString()
+                        .isNotEmpty &&
+                    lock.id ==
+                        csvRow[NelsonLockConfigTemplate.controllerIdIndex]);
+          },
           orElse: () => _createLockControllerFromCsvRow(csvRow),
         );
         if (!lockControllers.contains(lockController)) {
@@ -316,8 +339,11 @@ class MainViewModel {
           lockController.accessControllers = [];
         }
         if (!lockController.accessControllers.any((access) =>
-            (access.label == accessController.label &&
-                access.accessType == accessController.accessType))) {
+                (access.label == accessController.label &&
+                    access.accessType == accessController.accessType)) ||
+            accessController.accessType == AccessType.elevator ||
+            accessController.accessType == AccessType.elevatorLarge ||
+            accessController.accessType == AccessType.elevatorSmall) {
           lockController.accessControllers.add(accessController);
         } else {}
       }

@@ -239,13 +239,63 @@ class _LocksViewState extends State<LocksView> {
                     ? 'Please wait...'
                     : 'Initialize Selected Online Controllers')),
           ),
+          Padding(
+            padding:
+                const EdgeInsets.only(right: LayoutConstants.buttonEdgePadding),
+            child: TextButton(
+                onPressed: () {
+                  if (passwordInitializationInProcess) {
+                    log('Online lock controller password initialization currently in progress. Try later.');
+                    return;
+                  }
+                  log('Initial password congifuration of online lock controllers requested');
+                  if (ViewModelFactory
+                      .mainViewModel.onlineLockControllers.isEmpty) {
+                    log('No lock controllers available online');
+                    setState(() {
+                      configurationInProcess = false;
+                    });
+                  } else if (!ViewModelFactory
+                      .mainViewModel.onlineLockControllers
+                      .any((controller) => controller.selected)) {
+                    log('No online lock controller selected');
+                    setState(() {
+                      passwordInitializationInProcess = false;
+                    });
+                  } else {
+                    setState(() {
+                      passwordInitializationInProcess = true;
+                    });
+                    ViewModelFactory.mainViewModel.setFirstTimePassword(
+                        onSuccess: () {
+                      log('Online lock controller password initialization setup complete');
+                      setState(() {
+                        passwordInitializationInProcess = false;
+                      });
+                    }, onError: (error) {
+                      setState(() {
+                        //TODO: display a visual error note
+                        passwordInitializationInProcess = false;
+                      });
+                    });
+                  }
+                },
+                style: TextButton.styleFrom(
+                  side: BorderSide(color: Theme.of(context).primaryColor),
+                  backgroundColor:
+                      Theme.of(context).primaryColor.withOpacity(0),
+                ),
+                child: Text(passwordInitializationInProcess
+                    ? 'Please wait...'
+                    : 'Set Initial Password')),
+          ),
           TextButton(
               onPressed: () {
                 if (passwordInitializationInProcess) {
-                  log('Online lock controller password initialization currently in progress. Try later.');
+                  log('Online lock controller password update currently in progress. Try later.');
                   return;
                 }
-                log('Initial password congifuration of online lock controllers requested');
+                log('Password update of online lock controllers requested');
                 if (ViewModelFactory
                     .mainViewModel.onlineLockControllers.isEmpty) {
                   log('No lock controllers available online');
@@ -262,9 +312,9 @@ class _LocksViewState extends State<LocksView> {
                   setState(() {
                     passwordInitializationInProcess = true;
                   });
-                  ViewModelFactory.mainViewModel.setFirstTimePassword(
+                  ViewModelFactory.mainViewModel.updateControllerPassword(
                       onSuccess: () {
-                    log('Online lock controller password initialization setup complete');
+                    log('Online lock controller passwords updated');
                     setState(() {
                       passwordInitializationInProcess = false;
                     });
@@ -282,7 +332,7 @@ class _LocksViewState extends State<LocksView> {
               ),
               child: Text(passwordInitializationInProcess
                   ? 'Please wait...'
-                  : 'Set Initial Password')),
+                  : 'Update Password')),
         ]),
       );
     }

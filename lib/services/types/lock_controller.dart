@@ -12,6 +12,7 @@ class LockController {
   int port;
   String mdnsRecordName;
   Credentials credentials;
+  Credentials? newCredentials;
   AuthType authType;
   int maxSupportedAccessControllers;
   List<AccessController> accessControllers;

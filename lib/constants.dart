@@ -69,7 +69,7 @@ class NelsonLockConfigTemplate {
     [
       '192.168.0.90',
       '80',
-      'Axis A1601',
+      'AXIS A1601',
       'AXIS000',
       '1',
       'root',

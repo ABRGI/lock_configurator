@@ -3,6 +3,7 @@ import 'dart:developer';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:nelson_lock_manager/constants.dart';
+import 'package:nelson_lock_manager/services/types/credentials.dart';
 import 'package:nelson_lock_manager/theme_styles.dart';
 import 'package:nelson_lock_manager/utilities.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -413,6 +414,11 @@ class _LockGridState extends State<LockGrid> {
               'Initial Password',
               style: Theme.of(context).textTheme.bodyLarge,
             )),
+            _createTableCell(
+                child: Text(
+              'New Password',
+              style: Theme.of(context).textTheme.bodyLarge,
+            )),
           ])
     ];
     for (var controller in widget.onlineLockControllers) {
@@ -474,6 +480,13 @@ class _LockGridState extends State<LockGrid> {
         _createTableCell(
             child: TextField(
           onChanged: (value) => controller.credentials.password = value,
+        )),
+        _createTableCell(child: TextField(
+          onChanged: (value) {
+            controller.newCredentials ??= Credentials(
+                username: controller.credentials.username, password: value);
+            controller.newCredentials!.password = value;
+          },
         )),
       ]));
     }

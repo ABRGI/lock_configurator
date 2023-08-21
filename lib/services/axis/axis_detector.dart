@@ -251,6 +251,58 @@ class AxisDetector {
     });
   }
 
+  void updateControllerPassword(
+      {required LockController lockController,
+      void Function()? onSuccess,
+      void Function(String error)? onError}) {
+    log('Updating password for root user for controller ${lockController.id} at ${lockController.linkLocalIpAddress}');
+    var controllerUri = Uri.http(
+        '${lockController.linkLocalIpAddress}:${lockController.port}',
+        'axis-cgi/admin/pwdgrp.cgi', {
+      'action': 'update',
+      'user':
+          'root', //Make sure that the initial username is 'root' for axis controllers.
+      'pwd': lockController.newCredentials!.password,
+    });
+    DigestAuthClient(lockController.credentials.username,
+            lockController.credentials.password)
+        .get(controllerUri,
+            headers: {'Host': lockController.linkLocalIpAddress}).timeout(
+      passwordSetTimeout,
+      onTimeout: () {
+        log('Timeout on update ${lockController.credentials.username} password for controller ${lockController.id} at ${lockController.linkLocalIpAddress}');
+        if (onError != null) {
+          onError(
+              'Timeout on update ${lockController.credentials.username} password for controller ${lockController.id} at ${lockController.linkLocalIpAddress}');
+        }
+        return http.Response(
+            'Timeout on update ${lockController.credentials.username} password for controller ${lockController.id} at ${lockController.linkLocalIpAddress}',
+            400);
+      },
+    ).then((response) {
+      if (response.statusCode == 200 &&
+          response.body.toString().contains(
+              'Modified account ${lockController.credentials.username}.')) {
+        log('Updated root password for controller ${lockController.id} at ${lockController.linkLocalIpAddress}');
+        if (onSuccess != null) {
+          onSuccess();
+        }
+      } else {
+        log('Failed to update ${lockController.credentials.username} password for controller ${lockController.id} at ${lockController.linkLocalIpAddress}');
+        if (onError != null) {
+          onError(
+              'Failed to update ${lockController.credentials.username} password for controller ${lockController.id} at ${lockController.linkLocalIpAddress}');
+        }
+      }
+    }).onError((error, stackTrace) {
+      log('Failed to update ${lockController.credentials.username} password for controller ${lockController.id} at ${lockController.linkLocalIpAddress}',
+          error: error, stackTrace: stackTrace);
+      if (onError != null) {
+        onError(error.toString());
+      }
+    });
+  }
+
   void updateNetworkConfiguration(
       {required LockController lockController,
       void Function()? onSuccess,
@@ -455,7 +507,8 @@ class AxisDetector {
         List<dynamic> idl = convert.jsonDecode(response.body)['IdPoint'];
         List<AxisIdPoint> idPointList = idl
             .map<AxisIdPoint>((id) => AxisIdPoint.fromJson(id))
-            .where((id) => id.name == 'Reader Entrance')
+            .where(
+                (id) => id.name == 'Reader Entrance' || id.name == 'Elevator')
             .toList();
         log('Found ${idPointList.length.toString()} reader entrance id points on controller ${lockController.id}');
         if (onSuccess != null) {
@@ -583,6 +636,7 @@ class AxisDetector {
       case AccessType.stairwell:
       case AccessType.broomCloset:
       case AccessType.supplyCloset:
+      case AccessType.customerCloset:
       case AccessType.electricalRoom:
       case AccessType.serverRoom:
       case AccessType.cafeteria:
@@ -594,10 +648,11 @@ class AxisDetector {
       case AccessType.technicalRoom:
       case AccessType.elevator:
         token +=
-            'floor_${accessController.floor.toString()}_1_${accessController.accessType.toTokenString()}${accessController.label.isNotEmpty ? '_${accessController.label}' : ''}';
+            'floor_${accessController.floor.toString()}_1_${accessController.accessType.toTokenString()}${accessController.label.isNotEmpty ? '_${accessController.label.toLowerCase()}' : ''}';
       case AccessType.mainEntrance:
       case AccessType.innerEntrance:
-        token += accessController.accessType.toTokenString();
+        token +=
+            '${accessController.accessType.toTokenString()}${accessController.label.isNotEmpty ? '_${accessController.label}' : ''}';
       case AccessType.other:
         token += AccessType.other.toTokenString();
     }
@@ -612,21 +667,24 @@ class AxisDetector {
       case AccessType.stairwell:
       case AccessType.broomCloset:
       case AccessType.supplyCloset:
+      case AccessType.customerCloset:
       case AccessType.electricalRoom:
       case AccessType.serverRoom:
       case AccessType.cafeteria:
       case AccessType.office:
+      case AccessType.technicalRoom:
+      case AccessType.other:
+        return 'Floor ${accessController.floor} ${accessController.accessType.toString().toLowerCase()}${accessController.label.isNotEmpty ? ' ${accessController.label}' : ''}';
+      case AccessType.mainEntrance:
+        return 'Main entrance${accessController.label.isNotEmpty ? ' ${accessController.label}' : ''}';
+      case AccessType.innerEntrance:
+        return 'Inner entrance${accessController.label.isNotEmpty ? ' ${accessController.label}' : ''}';
       case AccessType.elevatorLargeRelay:
       case AccessType.elevatorLarge:
       case AccessType.elevatorSmallRelay:
       case AccessType.elevatorSmall:
       case AccessType.elevator:
-      case AccessType.technicalRoom:
-      case AccessType.other:
-        return 'Floor ${accessController.floor} ${accessController.accessType.toString().toLowerCase()}';
-      case AccessType.mainEntrance:
-      case AccessType.innerEntrance:
-        return 'Main entrance';
+        return '${accessController.accessType.toString()} ${accessController.label.isNotEmpty ? '${accessController.label} ' : ''}for floor ${accessController.floor.toString()}';
     }
   }
 
@@ -636,7 +694,7 @@ class AxisDetector {
         .map<AxisCredential>((accessController) {
       DateTime now = DateTime.now();
       String vf = '${now.year}-${now.month}-${now.day}T00:00:00Z';
-      String vt = '2023-06-03T00:00:00Z'; //For fixed date
+      String vt = '2023-06-18T00:00:00Z'; //For fixed date
       // String vt =
       //     '${(now.day < 28 && now.month < 12) ? now.year : now.year + 1}-${now.day < 28 ? now.month : (now.month < 12 ? now.month + 1 : 1)}-${now.day < 28 ? now.day + 1 : 1}T00:00:00Z'; // For 24 hour access
       return AxisCredential(

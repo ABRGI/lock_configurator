@@ -6,6 +6,7 @@ enum AccessType {
   stairwell,
   broomCloset,
   supplyCloset,
+  customerCloset,
   electricalRoom,
   serverRoom,
   cafeteria,
@@ -25,6 +26,7 @@ enum AccessType {
   static const _stairwell = 'Stairwell';
   static const _broomCloset = 'Broom Closet';
   static const _supplyCloset = 'Supply Closet';
+  static const _customerCloset = 'Customer Closet';
   static const _electricalRoom = 'Electrical Room';
   static const _serverRoom = 'Server Room';
   static const _cafeteria = 'Cafeteria';
@@ -54,6 +56,8 @@ enum AccessType {
         return _broomCloset;
       case AccessType.supplyCloset:
         return _supplyCloset;
+      case AccessType.customerCloset:
+        return _customerCloset;
       case AccessType.electricalRoom:
         return _electricalRoom;
       case AccessType.serverRoom:
@@ -95,6 +99,8 @@ enum AccessType {
         return AccessType.broomCloset;
       case _supplyCloset:
         return AccessType.supplyCloset;
+      case _customerCloset:
+        return AccessType.customerCloset;
       case _electricalRoom:
         return AccessType.electricalRoom;
       case _serverRoom:
@@ -136,6 +142,8 @@ enum AccessType {
         return 'broom_closet';
       case AccessType.supplyCloset:
         return 'supply_closet';
+      case AccessType.customerCloset:
+        return 'customer_closet';
       case AccessType.electricalRoom:
         return 'electrical_room';
       case AccessType.serverRoom:
