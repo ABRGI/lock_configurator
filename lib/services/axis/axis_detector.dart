@@ -26,6 +26,7 @@ class AxisDetector {
   static const String _lockSearchFilter = "AXIS"; //case sensitive string
   static const String _axisA1001Identifier = 'A1001';
   static const String _axisA1601Identifier = 'A1601';
+  static const String _axisA1610Identifier = 'A1610';
 
   late MDnsClient _mdnsClient;
 
@@ -53,6 +54,8 @@ class AxisDetector {
             lockType = LockType.axis_1001;
           } else if (srvRecord.name.contains(_axisA1601Identifier)) {
             lockType = LockType.axis_1601;
+          } else if (srvRecord.name.contains(_axisA1610Identifier)) {
+            lockType = LockType.axis_1610;
           }
 
           LockController lock = LockController(
@@ -208,14 +211,24 @@ class AxisDetector {
       void Function()? onSuccess,
       void Function(String error)? onError}) {
     log('Setting inital password for root user for controller ${lockController.id} at ${lockController.linkLocalIpAddress}');
-    var controllerUri = Uri.http(
-        '${lockController.linkLocalIpAddress}:${lockController.port}',
-        'axis-cgi/pwdroot/pwdroot.cgi', {
-      'action': 'update',
-      'user':
-          'root', //Make sure that the initial username is 'root' for axis controllers.
-      'pwd': lockController.credentials.password,
-    });
+    var controllerUri = lockController.type == LockType.axis_1610
+        ? Uri.http(
+            '${lockController.linkLocalIpAddress}:${lockController.port}',
+            'axis-cgi/pwdgrp.cgi', {
+            'action': 'add',
+            'user': 'root',
+            'pwd': lockController.credentials.password,
+            'grp': 'root',
+            'sgrp': 'admin:operator:viewer:ptz',
+          })
+        : Uri.http(
+            '${lockController.linkLocalIpAddress}:${lockController.port}',
+            'axis-cgi/pwdroot/pwdroot.cgi', {
+            'action': 'update',
+            'user':
+                'root', //Make sure that the initial username is 'root' for axis controllers.
+            'pwd': lockController.credentials.password,
+          });
     http.get(controllerUri).timeout(
       passwordSetTimeout,
       onTimeout: () {
@@ -497,6 +510,10 @@ class AxisDetector {
       body: '{"axtid:GetIdPointList":{}}',
     )
         .then((response) {
+      if (response.reasonPhrase == 'unauthorized') {
+        log('Unauthorized id point request for ${lockController.ipAddress} | ${lockController.linkLocalIpAddress}!');
+        return;
+      }
       if (convert.jsonDecode(response.body)['FaultMsg'] != null) {
         log('Error getting id points for lock controller ${lockController.ipAddress} | ${lockController.linkLocalIpAddress}!',
             error: convert.jsonDecode(response.body)['FaultMsg']);
@@ -694,7 +711,7 @@ class AxisDetector {
         .map<AxisCredential>((accessController) {
       DateTime now = DateTime.now();
       String vf = '${now.year}-${now.month}-${now.day}T00:00:00Z';
-      String vt = '2023-06-18T00:00:00Z'; //For fixed date
+      String vt = '2025-01-01T00:00:00Z'; //For fixed date
       // String vt =
       //     '${(now.day < 28 && now.month < 12) ? now.year : now.year + 1}-${now.day < 28 ? now.month : (now.month < 12 ? now.month + 1 : 1)}-${now.day < 28 ? now.day + 1 : 1}T00:00:00Z'; // For 24 hour access
       return AxisCredential(
