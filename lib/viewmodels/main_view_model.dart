@@ -309,7 +309,6 @@ class MainViewModel {
         LockController lockController;
         lockController = lockControllers.firstWhere(
           (lock) {
-            var a = 1;
             return (csvRow[NelsonLockConfigTemplate.ipAddressIndex]
                         .toString()
                         .isNotEmpty &&
